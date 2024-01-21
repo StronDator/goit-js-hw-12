@@ -18,6 +18,22 @@ const searchLoadingTextEl = document.querySelector('.main-load');
 const moreLoadingTextEl = document.querySelector('.more-load');
 
 export async function downloadImages(searchKey, isLoadMore = false) {
+  try {
+    updateUIBeforeRequest(isLoadMore);
+    
+    searchParams.q = searchKey;
+    
+    const images = await fetchImages();
+    
+    renderImages(images, isLoadMore);
+
+    updateUIAfterRequest(isLoadMore, images.totalHits);
+  } catch (error) {
+    handleError(isLoadMore, error);
+  }
+}
+
+function updateUIBeforeRequest(isLoadMore) {
   if (isLoadMore) {
     moreLoadingTextEl.style.display = 'block';
     loadMoreBtn.style.display = 'none';
@@ -31,39 +47,40 @@ export async function downloadImages(searchKey, isLoadMore = false) {
 
     searchParams.page = 1;
   }
+}
 
-  searchParams.q = searchKey;
-  let isDownloarError = false;
-  let totalHits = 0;
-  try {
-    const images = await fetchImages();
-    totalHits = images.totalHits;
-    renderImages(images, isLoadMore);
-  } catch (error) {
-    createMessage(error);
-    isDownloarError = true;
+function updateUIAfterRequest(isLoadMore, totalHits) {
+  if (isLoadMore) {
+    searchParams.page++;
+
+    const elementRect = document
+      .querySelector('.gallery-link')
+      .getBoundingClientRect();
+    window.scrollBy({
+      top: elementRect.height * 2.0,
+      left: 0,
+      behavior: 'smooth',
+    });
+
+    if (searchParams.per_page * searchParams.page >= totalHits)
+      createMessage(
+        "We're sorry, but you've reached the end of search results."
+      );
+    else loadMoreBtn.style.display = 'flex';
+
+    moreLoadingTextEl.style.display = 'none';
+  } else {
+    searchLoadingTextEl.style.display = 'none';
+    searchBtn.disabled = false;
+    loadMoreBtn.style.display = 'flex';
   }
+}
+
+function handleError(isLoadMore, error) {
+  createMessage(error);
 
   if (isLoadMore) {
-    if (!isDownloarError) {
-      searchParams.page++;
-
-      const elementRect = document
-        .querySelector('.gallery-link')
-        .getBoundingClientRect();
-      window.scrollBy({
-        top: elementRect.height * 2.0,
-        left: 0,
-        behavior: 'smooth',
-      });
-
-      if (searchParams.per_page * searchParams.page >= totalHits)
-        createMessage(
-          "We're sorry, but you've reached the end of search results."
-        );
-      else loadMoreBtn.style.display = 'flex';
-    } else loadMoreBtn.style.display = 'flex';
-
+    loadMoreBtn.style.display = 'flex';
     moreLoadingTextEl.style.display = 'none';
   } else {
     searchLoadingTextEl.style.display = 'none';

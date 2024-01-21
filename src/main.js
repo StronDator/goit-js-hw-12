@@ -3,14 +3,28 @@ import { downloadImages } from './js/download';
 
 const formEl = document.querySelector('.search-form');
 const loadMoreBtn = document.querySelector('.load-more-btn');
+const mainLoadEl = document.querySelector('.main-load');
+const moreLoadEl = document.querySelector('.more-load');
 
-document.querySelector('.main-load').style.display = 'none';
-document.querySelector('.more-load').style.display = 'none';
+mainLoadEl.style.display = 'none';
+moreLoadEl.style.display = 'none';
 loadMoreBtn.style.display = 'none';
 
 let searchKey;
 
-formEl.addEventListener('submit', event => {
+const hideElement = element => {
+  if (element) {
+    element.style.display = 'none';
+  }
+};
+
+const showElement = element => {
+  if (element) {
+    element.style.display = 'block';
+  }
+};
+
+const handleFormSubmit = async event => {
   event.preventDefault();
 
   searchKey = formEl.elements.search.value.trim();
@@ -18,11 +32,31 @@ formEl.addEventListener('submit', event => {
     createMessage('Search must be filled!');
     return;
   }
+
   formEl.reset();
+  hideElement(mainLoadEl);
+  hideElement(moreLoadEl);
 
-  downloadImages(searchKey);
-});
+  try {
+    await downloadImages(searchKey);
+    showElement(loadMoreBtn);
+  } catch (error) {
+    console.error('Error downloading images:', error);
+  }
+};
 
-loadMoreBtn.addEventListener('click', () => {
-  downloadImages(searchKey, true);
-});
+const handleLoadMoreClick = async () => {
+  hideElement(mainLoadEl);
+  showElement(moreLoadEl);
+
+  try {
+    await downloadImages(searchKey, true);
+  } catch (error) {
+    console.error('Error loading more images:', error);
+  } finally {
+    hideElement(moreLoadEl);
+  }
+};
+
+formEl.addEventListener('submit', handleFormSubmit);
+loadMoreBtn.addEventListener('click', handleLoadMoreClick);
